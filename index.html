@@ -67,7 +67,7 @@
 
     .weather-table td {
       border: 1px solid #e2e8f0;
-      padding: 22px 12px;
+      padding: 11px 6px;
       text-align: center;
       vertical-align: middle;
     }
@@ -82,12 +82,12 @@
       background: #f0f2f5;
       text-align: right;
       white-space: nowrap;
-      width: 9rem;
+      width: 5rem;
     }
 
     /* Row 1: Day of week */
     .row-day {
-      background: #edf2f7;
+      background: #fff;
       font-size: 1.76rem;
       font-weight: 700;
       letter-spacing: 0.05em;
@@ -115,22 +115,9 @@
       background: #fffaf0;
     }
 
-    .temp-min {
-      font-weight: 700;
-      color: #1a202c;
-      font-size: 3rem;
-    }
-
-    .temp-sep {
-      color: #1a202c;
-      margin: 0 6px;
-      font-size: 3rem;
-    }
-
-    .temp-max {
-      font-weight: 700;
-      color: #1a202c;
-      font-size: 3rem;
+    .temp-chart {
+      display: block;
+      width: 100%;
     }
 
     /* Row 4: Humidity */
@@ -302,19 +289,21 @@
 
       let svg = `<svg class="wind-sparkline" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
 
-      // Horizontal gridlines at 5mph intervals up to YMAX
+      // Horizontal gridlines at 10mph intervals up to YMAX (labeled solid) + 5mph midpoints (dotted)
       for (let mph = 5; mph <= YMAX; mph += 5) {
         const y = toY(mph).toFixed(1);
-        svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5"/>`;
-        svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="#4a5568">${mph}</text>`;
+        if (mph % 10 === 0) {
+          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5"/>`;
+          svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="#4a5568">${mph}</text>`;
+        } else {
+          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5" stroke-dasharray="1,4"/>`;
+        }
       }
 
-      // Vertical markers at 6am, 12pm, 6pm (indices match 24-value slice from 12am)
-      const markerDefs = [{ idx: 6, label: '6a' }, { idx: 12, label: '12p' }, { idx: 18, label: '6p' }];
-      for (const { idx, label } of markerDefs) {
+      // Vertical markers at 6am, 12pm, 6pm (no labels)
+      for (const idx of [6, 12, 18]) {
         const x = toX(idx).toFixed(1);
-        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="1" stroke-dasharray="2,2"/>`;
-        svg += `<text x="${parseFloat(x) + 1}" y="${H - 1}" font-size="5" fill="#4a5568">${label}</text>`;
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="1" stroke-dasharray="1,4"/>`;
       }
 
       // Wind line
@@ -329,7 +318,7 @@
     // Starts from 12am. Shared YMAX across all days.
     // Vertical markers at 6am (idx 6), 12pm (idx 12), 6pm (idx 18).
     function rainBarChart(values, YMAX) {
-      const W = 120, H = 60, PADX = 2, PADY = 4;
+      const W = 120, H = 30, PADX = 2, PADY = 4;
       const n = values.length; // 24
       const barW = (W - PADX * 2) / n;
       const toX = i   => PADX + i * barW;
@@ -350,12 +339,49 @@
       }
 
       // Vertical markers at 6am, 12pm, 6pm
+      const markerDefs = [{ idx: 6 }, { idx: 12 }, { idx: 18 }];
+      for (const { idx } of markerDefs) {
+        const x = toX(idx).toFixed(1);
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="1" stroke-dasharray="1,4"/>`;
+      }
+
+      svg += `</svg>`;
+      return svg;
+    }
+
+    // Build an SVG line chart for 24 hourly temperature values (°F).
+    // Shared YMIN/YMAX across all days. Historical avg lines shown as dashed.
+    function tempLineChart(values, YMIN, YMAX, histLow, histHigh) {
+      const W = 120, H = 60, PADX = 2, PADY = 4;
+      const range = YMAX - YMIN || 1;
+      const toX = i   => PADX + (i / (values.length - 1)) * (W - PADX * 2);
+      const toY = val => PADY + (1 - (val - YMIN) / range) * (H - PADY * 2);
+
+      let svg = `<svg class="temp-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+
+      // Horizontal gridlines anchored to YMIN, stepping every 20°F (labeled solid)
+      // with unlabeled dotted lines at the 10°F midpoints
+      for (let t = YMIN; t <= YMAX; t += 10) {
+        const y = toY(t).toFixed(1);
+        if ((t - YMIN) % 20 === 0) {
+          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5"/>`;
+          svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="#4a5568">${t}</text>`;
+        } else {
+          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5" stroke-dasharray="1,4"/>`;
+        }
+      }
+
+      // Vertical markers at 6am, 12pm, 6pm
       const markerDefs = [{ idx: 6, label: '6a' }, { idx: 12, label: '12p' }, { idx: 18, label: '6p' }];
       for (const { idx, label } of markerDefs) {
         const x = toX(idx).toFixed(1);
-        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="1" stroke-dasharray="2,2"/>`;
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#a0aec0" stroke-width="1" stroke-dasharray="1,4"/>`;
         svg += `<text x="${parseFloat(x) + 1}" y="${H - 1}" font-size="5" fill="#4a5568">${label}</text>`;
       }
+
+      // Temperature line
+      const pts = values.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+      svg += `<polyline points="${pts}" fill="none" stroke="#1a202c" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
 
       svg += `</svg>`;
       return svg;
@@ -417,6 +443,7 @@
           'windspeed_10m',
           'precipitation',
           'precipitation_probability',
+          'temperature_2m',
         ].join(','),
         temperature_unit: 'fahrenheit',
         windspeed_unit: 'mph',
@@ -435,32 +462,64 @@
 
       const humidityAvgs = dailyHumidityAvg(hourly.relativehumidity_2m, NUM_DAYS);
 
+      // Compute per-day hourly temp slices — pick best-fit fixed range
+      const tempSlices = Array.from({ length: NUM_DAYS }, (_, d) =>
+        hourly.temperature_2m.slice(d * 24, d * 24 + 24)
+      );
+      const allTemps = tempSlices.flat();
+      const tempMin = Math.min(...allTemps);
+      const tempMax = Math.max(...allTemps);
+      const TEMP_RANGES = [[50, 100], [20, 70], [-10, 40]];
+      const bestRange = TEMP_RANGES.find(([lo, hi]) => tempMin >= lo && tempMax <= hi) || [-10, 40];
+      const tempGlobalMin = bestRange[0];
+      const tempGlobalMax = bestRange[1];
+
       // Compute per-day hourly wind slices and shared Y scale
       const windSlices = Array.from({ length: NUM_DAYS }, (_, d) =>
         hourly.windspeed_10m.slice(d * 24, d * 24 + 24)
       );
-      const globalMax = Math.max(...windSlices.flat()) || 1;
-      const windYMax = Math.ceil(globalMax / 5) * 5;
+      const windYMax = 20;
 
-      // Compute per-day hourly rain slices (12am–midnight) and shared Y scale
+      // Compute per-day hourly rain slices (12am–midnight)
+      // Fixed Y scale: 7.5mm/hr = heavy downpour, so relative intensity is always visible
       const rainSlices = Array.from({ length: NUM_DAYS }, (_, d) =>
         hourly.precipitation.slice(d * 24, d * 24 + 24)
       );
-      const rainGlobalMax = Math.max(...rainSlices.flat()) || 1;
-      const rainYMax = parseFloat((Math.ceil(rainGlobalMax * 4) / 4).toFixed(2)) || 1;
+      const rainYMax = 4;
+
+      // Load yesterday's cached data for day-0 temp delta
+      const yesterdayDate = new Date();
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterdayStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
+      const yesterdayCache = loadFromCache(yesterdayStr);
+      const yesterdayHigh = yesterdayCache?.daily?.temperature_2m_max?.[0] ?? null;
+      const yesterdayLow  = yesterdayCache?.daily?.temperature_2m_min?.[0] ?? null;
+
+      // Compute the "most extreme" temp change between two days.
+      // Picks whichever of highDiff/lowDiff has the larger absolute value.
+      // If they tie in opposite directions, returns 0.
+      function extremeTempDiff(prevHigh, prevLow, curHigh, curLow) {
+        if (prevHigh == null || prevLow == null) return null;
+        return Math.round(((curHigh + curLow) / 2) - ((prevHigh + prevLow) / 2));
+      }
 
       // Build per-column data
       const cols = daily.time.slice(0, NUM_DAYS).map((dateStr, i) => {
         const date = new Date(dateStr + 'T00:00:00');
+        const prevHigh = i === 0 ? yesterdayHigh : daily.temperature_2m_max[i - 1];
+        const prevLow  = i === 0 ? yesterdayLow  : daily.temperature_2m_min[i - 1];
+        const tempDiff = extremeTempDiff(prevHigh, prevLow, daily.temperature_2m_max[i], daily.temperature_2m_min[i]);
         return {
           isToday: i === 0,
           dayLabel: DAY_NAMES[date.getDay()],
+          tempDiff,
           condition: describeCode(daily.weathercode[i]),
-          tempMax: Math.round(daily.temperature_2m_max[i]),
-          tempMin: Math.round(daily.temperature_2m_min[i]),
           humidAvg: humidityAvgs[i],
           windSlice: windSlices[i],
           rainSlice: rainSlices[i],
+          tempSlice: tempSlices[i],
+          histLow: HIST_AVG[date.getMonth()].low,
+          histHigh: HIST_AVG[date.getMonth()].high,
         };
       });
 
@@ -484,40 +543,42 @@
         return tr;
       };
 
-      // Row 1 — Day of week
+      // Row 1 — Day of week + temp delta from previous day
       table.appendChild(makeRow('row-day', '',
-        cols.map(c => c.dayLabel)
+        cols.map(c => {
+          if (c.tempDiff === null || Math.abs(c.tempDiff) < 5) return c.dayLabel;
+          const arrow = c.tempDiff > 0
+            ? '<span style="color:#e53e3e">▲</span>'
+            : '<span style="color:#63b3ed">▼</span>';
+          return `${c.dayLabel} ${arrow}${Math.abs(c.tempDiff)}°`;
+        })
       ));
 
-      // Row 2 — Temperature low – high
-      table.appendChild(makeRow('row-temp', 'Temp',
-        cols.map(c =>
-          `<span class="temp-min">${c.tempMin}°</span>
-           <span class="temp-sep">–</span>
-           <span class="temp-max">${c.tempMax}°</span>`
-        )
-      ));
-
-      // Row 3 — Condition
-      table.appendChild(makeRow('row-condition', 'Condition',
+      // Row 2 — Condition
+      table.appendChild(makeRow('row-condition', 'Cond',
         cols.map(c =>
           `<span class="weather-icon">${c.condition.icon}</span>
            <span class="condition-label">${c.condition.label}</span>`
         )
       ));
 
-      // Row 4 — Wind sparkline
-      table.appendChild(makeRow('row-wind', 'Wind',
-        cols.map(c => windSparkline(c.windSlice, windYMax))
-      ));
-
-      // Row 5 — Rain bar chart
+      // Row 3 — Rain bar chart
       table.appendChild(makeRow('row-rain', 'Rain',
         cols.map(c => rainBarChart(c.rainSlice, rainYMax))
       ));
 
+      // Row 4 — Temperature line chart
+      table.appendChild(makeRow('row-temp', 'Temp',
+        cols.map(c => tempLineChart(c.tempSlice, tempGlobalMin, tempGlobalMax, c.histLow, c.histHigh))
+      ));
+
+      // Row 5 — Wind sparkline
+      table.appendChild(makeRow('row-wind', 'Wind',
+        cols.map(c => windSparkline(c.windSlice, windYMax))
+      ));
+
       // Row 6 — Humidity average
-      table.appendChild(makeRow('row-humidity', 'Humidity',
+      table.appendChild(makeRow('row-humidity', 'Hum',
         cols.map(c => `${c.humidAvg}%`)
       ));
 
