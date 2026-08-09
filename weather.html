@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boston Weather</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f7f8fa;
+      color: #1a202c;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: #4a5568;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    #page-subtitle {
+      display: none;
+    }
+
+    #error {
+      color: #e53e3e;
+      font-size: 1.9rem;
+      margin-top: 12px;
+      display: none;
+    }
+
+    #loading {
+      color: #718096;
+      font-size: 1.9rem;
+    }
+
+    .weather-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .weather-table td {
+      border: 1px solid #e2e8f0;
+      padding: 22px 12px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    /* Label column (first cell of every row) */
+    .weather-table td.row-label-cell {
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #718096;
+      background: #f0f2f5;
+      text-align: right;
+      white-space: nowrap;
+      width: 9rem;
+    }
+
+    /* Row 1: Day of week */
+    .row-day {
+      background: #edf2f7;
+      font-size: 1.76rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #2d3748;
+    }
+
+    /* Row 2: Weather condition */
+    .row-condition {
+      background: #fff;
+    }
+
+    .weather-icon {
+      font-size: 5.4rem;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .condition-label {
+      font-size: 2.34rem;
+      color: #718096;
+    }
+
+    /* Row 3: Temperature */
+    .row-temp {
+      background: #fffaf0;
+    }
+
+    .temp-min {
+      font-weight: 700;
+      color: #1a202c;
+      font-size: 3rem;
+    }
+
+    .temp-sep {
+      color: #1a202c;
+      margin: 0 6px;
+      font-size: 3rem;
+    }
+
+    .temp-max {
+      font-weight: 700;
+      color: #1a202c;
+      font-size: 3rem;
+    }
+
+    /* Row 4: Humidity */
+    .row-humidity {
+      background: #ebf8ff;
+      color: #2b6cb0;
+      font-size: 1.9rem;
+    }
+
+    /* Row 5: Wind sparkline */
+    .row-wind {
+      background: #fff;
+      color: #276749;
+      font-size: 1.9rem;
+    }
+
+    .wind-sparkline {
+      display: block;
+      width: 100%;
+    }
+
+    /* Row 6: Rain bar chart */
+    .row-rain {
+      background: #fff;
+      color: #2c5282;
+      font-size: 1.9rem;
+    }
+
+    .rain-chart {
+      display: block;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="page-title">Boston Weather</h1>
+  <p id="page-subtitle"></p>
+  <div id="loading">Fetching weather data…</div>
+  <div id="error"></div>
+  <table class="weather-table" id="forecast-table" style="display:none;"></table>
+
+  <script>
+    const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const MONTH_NAMES = ['January','February','March','April','May','June',
+                         'July','August','September','October','November','December'];
+
+    // Historical monthly avg high/low for Boston (Logan Airport, 1991–2020 normals, °F)
+    // Source: extremeweatherwatch.com/cities/boston & weatherspark.com (Logan Airport)
+    const HIST_AVG = [
+      { high: 37, low: 23 }, // Jan
+      { high: 39, low: 25 }, // Feb
+      { high: 46, low: 31 }, // Mar
+      { high: 57, low: 41 }, // Apr
+      { high: 67, low: 50 }, // May
+      { high: 76, low: 60 }, // Jun
+      { high: 82, low: 66 }, // Jul
+      { high: 81, low: 65 }, // Aug
+      { high: 73, low: 58 }, // Sep
+      { high: 62, low: 48 }, // Oct
+      { high: 52, low: 39 }, // Nov
+      { high: 42, low: 30 }, // Dec
+    ];
+
+    // Set title with today's date and historical average
+    (function setTitle() {
+      const now = new Date();
+      const hist = HIST_AVG[now.getMonth()];
+      const dateStr = `${MONTH_NAMES[now.getMonth()]} ${now.getDate()}`;
+      const titleText = `Boston — ${dateStr}`;
+      document.getElementById('page-title').textContent = `${dateStr} — Historically ${hist.low}–${hist.high}° in Boston`;
+      document.title = `Boston Weather — ${dateStr}`;
+    })();
+
+    // WMO weather interpretation codes → label + emoji
+    function describeCode(code) {
+      if (code === 0)                         return { label: 'Clear',            icon: '☀️' };
+      if (code === 1)                         return { label: 'Mostly Clear',     icon: '🌤️' };
+      if (code === 2)                         return { label: 'Partly Cloudy',    icon: '⛅' };
+      if (code === 3)                         return { label: 'Overcast',         icon: '☁️' };
+      if ([45, 48].includes(code))            return { label: 'Foggy',            icon: '🌫️' };
+      if ([51, 53, 55].includes(code))        return { label: 'Drizzle',          icon: '🌦️' };
+      if ([56, 57].includes(code))            return { label: 'Freezing Drizzle', icon: '🌧️' };
+      if ([61, 63, 65].includes(code))        return { label: 'Rain',             icon: '🌧️' };
+      if ([66, 67].includes(code))            return { label: 'Freezing Rain',    icon: '🌨️' };
+      if ([71, 73, 75].includes(code))        return { label: 'Snow',             icon: '❄️' };
+      if (code === 77)                        return { label: 'Snow Grains',      icon: '🌨️' };
+      if ([80, 81, 82].includes(code))        return { label: 'Showers',          icon: '🌦️' };
+      if ([85, 86].includes(code))            return { label: 'Snow Showers',     icon: '🌨️' };
+      if (code === 95)                        return { label: 'Thunderstorm',     icon: '⛈️' };
+      if ([96, 99].includes(code))            return { label: 'Thunderstorm',     icon: '⛈️' };
+      return { label: 'Unknown', icon: '🌡️' };
+    }
+
+    // Compute daily average humidity from hourly values (24 per day)
+    function dailyHumidityAvg(hourlyValues, numDays) {
+      return Array.from({ length: numDays }, (_, d) => {
+        const slice = hourlyValues.slice(d * 24, d * 24 + 24).filter(v => v != null);
+        const sum = slice.reduce((a, b) => a + b, 0);
+        return Math.round(sum / slice.length);
+      });
+    }
+
+    // Compute daily min wind from hourly windspeed array (24 values per day)
+    function dailyWindMin(hourlyValues, numDays) {
+      return Array.from({ length: numDays }, (_, d) => {
+        const slice = hourlyValues.slice(d * 24, d * 24 + 24).filter(v => v != null);
+        return Math.round(Math.min(...slice));
+      });
+    }
+
+    // Format a 0-23 hour integer to a readable time string like "2pm", "11am"
+    function fmtHour(h) {
+      if (h === 0)  return '12am';
+      if (h === 12) return '12pm';
+      return h < 12 ? `${h}am` : `${h - 12}pm`;
+    }
+
+    // Format a time range, omitting the am/pm on the start if it matches the end
+    function fmtRange(startH, endH) {
+      const startSuffix = startH < 12 ? 'am' : 'pm';
+      const endSuffix   = endH < 12   ? 'am' : 'pm';
+      const startNum = startH === 0 ? 12 : startH <= 12 ? startH : startH - 12;
+      const endNum   = endH   === 0 ? 12 : endH   <= 12 ? endH   : endH   - 12;
+      const startStr = startSuffix === endSuffix ? `${startNum}` : `${startNum}${startSuffix}`;
+      return `${startStr} – ${endNum}${endSuffix}`;
+    }
+
+    // Find contiguous rain windows for each day.
+    // A hour is "rainy" if precipitation > 0.1 mm OR probability >= 50%.
+    // Returns an array of strings per day, e.g. "2pm – 6pm" or "—".
+    function dailyRainWindows(hourlyTimes, precipitation, probability, numDays) {
+      return Array.from({ length: numDays }, (_, d) => {
+        const rainyHours = [];
+        for (let h = 0; h < 24; h++) {
+          const idx = d * 24 + h;
+          const precip = precipitation[idx] ?? 0;
+          const prob   = probability[idx] ?? 0;
+          if (precip > 0.1 || prob >= 50) {
+            rainyHours.push(h);
+          }
+        }
+        if (rainyHours.length === 0) return null;
+
+        // Group into contiguous windows
+        const windows = [];
+        let start = rainyHours[0];
+        let prev  = rainyHours[0];
+        for (let i = 1; i < rainyHours.length; i++) {
+          if (rainyHours[i] > prev + 1) {
+            windows.push(fmtRange(start, prev + 1));
+            start = rainyHours[i];
+          }
+          prev = rainyHours[i];
+        }
+        windows.push(fmtRange(start, prev + 1));
+        return windows.join('\n');
+      });
+    }
+
+    // Build an SVG sparkline for 24 hourly wind values.
+    // Y scale: 0 to nearest 5mph ceiling above the actual max.
+    // Gridlines at 5, 10, 15, 20 mph only up to that ceiling.
+    // Vertical markers at 6h, 12h, 18h.
+    function windSparkline(values, YMAX) {
+      const W = 120, H = 60, PADX = 2, PADY = 4;
+      const toX = i  => PADX + (i / (values.length - 1)) * (W - PADX * 2);
+      const toY = mph => PADY + (1 - Math.min(mph, YMAX) / YMAX) * (H - PADY * 2);
+
+      let svg = `<svg class="wind-sparkline" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+
+      // Horizontal gridlines at 5mph intervals up to YMAX
+      for (let mph = 5; mph <= YMAX; mph += 5) {
+        const y = toY(mph).toFixed(1);
+        svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5"/>`;
+        svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="#4a5568">${mph}</text>`;
+      }
+
+      // Vertical markers at 6am, 12pm, 6pm (indices match 24-value slice from 12am)
+      const markerDefs = [{ idx: 6, label: '6a' }, { idx: 12, label: '12p' }, { idx: 18, label: '6p' }];
+      for (const { idx, label } of markerDefs) {
+        const x = toX(idx).toFixed(1);
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="1" stroke-dasharray="2,2"/>`;
+        svg += `<text x="${parseFloat(x) + 1}" y="${H - 1}" font-size="5" fill="#4a5568">${label}</text>`;
+      }
+
+      // Wind line
+      const pts = values.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+      svg += `<polyline points="${pts}" fill="none" stroke="#1a202c" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+
+      svg += `</svg>`;
+      return svg;
+    }
+
+    // Build an SVG bar chart for 24 hourly precipitation values (mm).
+    // Starts from 12am. Shared YMAX across all days.
+    // Vertical markers at 6am (idx 6), 12pm (idx 12), 6pm (idx 18).
+    function rainBarChart(values, YMAX) {
+      const W = 120, H = 60, PADX = 2, PADY = 4;
+      const n = values.length; // 24
+      const barW = (W - PADX * 2) / n;
+      const toX = i   => PADX + i * barW;
+      const toY = mm  => PADY + (1 - Math.min(mm, YMAX) / YMAX) * (H - PADY * 2);
+      const barH = mm => (H - PADY * 2) - (toY(mm) - PADY);
+
+      let svg = `<svg class="rain-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+
+      // Bars
+      for (let i = 0; i < n; i++) {
+        const v = values[i] || 0;
+        if (v > 0) {
+          const x = toX(i).toFixed(1);
+          const y = toY(v).toFixed(1);
+          const bh = barH(v).toFixed(1);
+          svg += `<rect x="${x}" y="${y}" width="${(barW - 0.5).toFixed(1)}" height="${bh}" fill="#2d3748" opacity="0.85"/>`;
+        }
+      }
+
+      // Vertical markers at 6am, 12pm, 6pm
+      const markerDefs = [{ idx: 6, label: '6a' }, { idx: 12, label: '12p' }, { idx: 18, label: '6p' }];
+      for (const { idx, label } of markerDefs) {
+        const x = toX(idx).toFixed(1);
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="1" stroke-dasharray="2,2"/>`;
+        svg += `<text x="${parseFloat(x) + 1}" y="${H - 1}" font-size="5" fill="#4a5568">${label}</text>`;
+      }
+
+      svg += `</svg>`;
+      return svg;
+    }
+
+    async function fetchWeather() {
+      const params = new URLSearchParams({
+        latitude: '42.3601',
+        longitude: '-71.0589',
+        daily: [
+          'weathercode',
+          'temperature_2m_max',
+          'temperature_2m_min',
+          'windspeed_10m_max',
+        ].join(','),
+        hourly: [
+          'relativehumidity_2m',
+          'windspeed_10m',
+          'precipitation',
+          'precipitation_probability',
+        ].join(','),
+        temperature_unit: 'fahrenheit',
+        windspeed_unit: 'mph',
+        timezone: 'America/New_York',
+        forecast_days: '4',
+      });
+
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+
+    function buildTable(data) {
+      const { daily, hourly } = data;
+      const NUM_DAYS = 4;
+
+      const humidityAvgs = dailyHumidityAvg(hourly.relativehumidity_2m, NUM_DAYS);
+
+      // Compute per-day hourly wind slices and shared Y scale
+      const windSlices = Array.from({ length: NUM_DAYS }, (_, d) =>
+        hourly.windspeed_10m.slice(d * 24, d * 24 + 24)
+      );
+      const globalMax = Math.max(...windSlices.flat()) || 1;
+      const windYMax = Math.ceil(globalMax / 5) * 5;
+
+      // Compute per-day hourly rain slices (12am–midnight) and shared Y scale
+      const rainSlices = Array.from({ length: NUM_DAYS }, (_, d) =>
+        hourly.precipitation.slice(d * 24, d * 24 + 24)
+      );
+      const rainGlobalMax = Math.max(...rainSlices.flat()) || 1;
+      const rainYMax = parseFloat((Math.ceil(rainGlobalMax * 4) / 4).toFixed(2)) || 1;
+
+      // Build per-column data
+      const cols = daily.time.slice(0, NUM_DAYS).map((dateStr, i) => {
+        const date = new Date(dateStr + 'T00:00:00');
+        return {
+          isToday: i === 0,
+          dayLabel: DAY_NAMES[date.getDay()],
+          condition: describeCode(daily.weathercode[i]),
+          tempMax: Math.round(daily.temperature_2m_max[i]),
+          tempMin: Math.round(daily.temperature_2m_min[i]),
+          humidAvg: humidityAvgs[i],
+          windSlice: windSlices[i],
+          rainSlice: rainSlices[i],
+        };
+      });
+
+      const table = document.getElementById('forecast-table');
+      table.innerHTML = '';
+
+      const makeRow = (className, label, cellsHtml) => {
+        const tr = document.createElement('tr');
+        tr.className = className;
+        // Label cell
+        const th = document.createElement('td');
+        th.className = 'row-label-cell';
+        th.textContent = label;
+        tr.appendChild(th);
+        // Data cells
+        cellsHtml.forEach((html, i) => {
+          const td = document.createElement('td');
+          td.innerHTML = html;
+          tr.appendChild(td);
+        });
+        return tr;
+      };
+
+      // Row 1 — Day of week
+      table.appendChild(makeRow('row-day', '',
+        cols.map(c => c.dayLabel)
+      ));
+
+      // Row 2 — Temperature low – high
+      table.appendChild(makeRow('row-temp', 'Temp',
+        cols.map(c =>
+          `<span class="temp-min">${c.tempMin}°</span>
+           <span class="temp-sep">–</span>
+           <span class="temp-max">${c.tempMax}°</span>`
+        )
+      ));
+
+      // Row 3 — Condition
+      table.appendChild(makeRow('row-condition', 'Condition',
+        cols.map(c =>
+          `<span class="weather-icon">${c.condition.icon}</span>
+           <span class="condition-label">${c.condition.label}</span>`
+        )
+      ));
+
+      // Row 4 — Wind sparkline
+      table.appendChild(makeRow('row-wind', 'Wind',
+        cols.map(c => windSparkline(c.windSlice, windYMax))
+      ));
+
+      // Row 5 — Rain bar chart
+      table.appendChild(makeRow('row-rain', 'Rain',
+        cols.map(c => rainBarChart(c.rainSlice, rainYMax))
+      ));
+
+      // Row 6 — Humidity average
+      table.appendChild(makeRow('row-humidity', 'Humidity',
+        cols.map(c => `${c.humidAvg}%`)
+      ));
+
+      document.getElementById('loading').style.display = 'none';
+      table.style.display = 'table';
+    }
+
+    fetchWeather()
+      .then(buildTable)
+      .catch(err => {
+        document.getElementById('loading').style.display = 'none';
+        const el = document.getElementById('error');
+        el.textContent = `Could not load weather data: ${err.message}`;
+        el.style.display = 'block';
+        console.error(err);
+      });
+  </script>
+</body>
+</html>
