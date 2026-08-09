@@ -315,6 +315,12 @@
       const pts = values.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
       svg += `<polyline points="${pts}" fill="none" stroke="#1a202c" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
 
+      // Max wind label in the upper-right corner
+      const maxWind = Math.round(Math.max(...values));
+      svg += `<text x="${W - PADX - 1}" y="${PADY + 10}" font-size="13.5" font-weight="700" fill="#1a202c" text-anchor="end">${maxWind}</text>`;
+
+      svg += `</svg>`;
+
       svg += `</svg>`;
       return svg;
     }
@@ -406,6 +412,14 @@
       // Temperature line
       const pts = values.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
       svg += `<polyline points="${pts}" fill="none" stroke="#1a202c" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+
+      // High label in the upper-right corner
+      const highVal = Math.round(Math.max(...values));
+      svg += `<text x="${W - PADX - 1}" y="${PADY + 10}" font-size="13.5" font-weight="700" fill="#1a202c" text-anchor="end">${highVal}°</text>`;
+
+      // Low label in the bottom-right corner, just above the bottom edge
+      const lowVal = Math.round(Math.min(...values));
+      svg += `<text x="${W - PADX - 1}" y="${H - PADY - 2}" font-size="13.5" font-weight="700" fill="#1a202c" text-anchor="end">${lowVal}°</text>`;
 
       svg += `</svg>`;
       return svg;
