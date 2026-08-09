@@ -36,6 +36,17 @@
       display: none;
     }
 
+    #date-select {
+      font-size: 0.85rem;
+      color: #718096;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+
     #error {
       color: #e53e3e;
       font-size: 1.9rem;
@@ -157,6 +168,7 @@
 <body>
   <h1 id="page-title">Boston Weather</h1>
   <p id="page-subtitle"></p>
+  <select id="date-select" title="View cached date"></select>
   <div id="loading">Fetching weather data…</div>
   <div id="error"></div>
   <table class="weather-table" id="forecast-table" style="display:none;"></table>
@@ -349,6 +361,63 @@
       return svg;
     }
 
+    // --- localStorage cache ---
+    const CACHE_PREFIX = 'boston_weather_';
+
+    function cacheKey(dateStr) {
+      return CACHE_PREFIX + dateStr; // e.g. "boston_weather_2026-08-09"
+    }
+
+    function saveToCache(dateStr, data) {
+      try {
+        localStorage.setItem(cacheKey(dateStr), JSON.stringify(data));
+      } catch (e) {
+        console.warn('Could not save to localStorage:', e);
+      }
+    }
+
+    function loadFromCache(dateStr) {
+      try {
+        const raw = localStorage.getItem(cacheKey(dateStr));
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function listCachedDates() {
+      const dates = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith(CACHE_PREFIX)) {
+          dates.push(key.replace(CACHE_PREFIX, ''));
+        }
+      }
+      return dates.sort().reverse(); // most recent first
+    }
+
+    function todayStr() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    // Populate the date selector with cached dates
+    function refreshDateSelector(selectedDate) {
+      const sel = document.getElementById('date-select');
+      sel.innerHTML = '';
+      const dates = listCachedDates();
+      const today = todayStr();
+      // Always include today
+      const allDates = [...new Set([today, ...dates])].sort().reverse();
+      allDates.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d === today ? `${d} (today)` : d;
+        if (d === selectedDate) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
     async function fetchWeather() {
       const params = new URLSearchParams({
         latitude: '42.3601',
@@ -472,8 +541,54 @@
       table.style.display = 'table';
     }
 
-    fetchWeather()
-      .then(buildTable)
+    async function loadWeather(dateStr) {
+      const today = todayStr();
+      const isToday = dateStr === today;
+
+      // Use cache for past dates; for today try live first, fall back to cache
+      if (!isToday) {
+        const cached = loadFromCache(dateStr);
+        if (cached) {
+          buildTable(cached);
+          return;
+        }
+        throw new Error(`No cached data for ${dateStr}`);
+      }
+
+      // Today: try live API, save to cache, fall back to cache on error
+      try {
+        const data = await fetchWeather();
+        saveToCache(today, data);
+        refreshDateSelector(today);
+        buildTable(data);
+      } catch (err) {
+        const cached = loadFromCache(today);
+        if (cached) {
+          buildTable(cached);
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    // Boot
+    const today = todayStr();
+    refreshDateSelector(today);
+
+    document.getElementById('date-select').addEventListener('change', function () {
+      document.getElementById('forecast-table').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+      loadWeather(this.value)
+        .catch(err => {
+          document.getElementById('loading').style.display = 'none';
+          const el = document.getElementById('error');
+          el.textContent = `Could not load data: ${err.message}`;
+          el.style.display = 'block';
+        });
+    });
+
+    loadWeather(today)
       .catch(err => {
         document.getElementById('loading').style.display = 'none';
         const el = document.getElementById('error');
