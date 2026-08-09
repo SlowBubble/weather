@@ -126,6 +126,17 @@
   <script>
     const CACHE_PREFIX = 'boston_weather_';
 
+    // Pass ?dark=1 through to index links if it's in the current URL
+    function darkParam() {
+      return new URLSearchParams(location.search).get('dark') === '1' ? '&dark=1' : '';
+    }
+
+    // Keep the "← Today" link in sync too
+    document.addEventListener('DOMContentLoaded', () => {
+      const todayLink = document.querySelector('header a[href^="index.html"]');
+      if (todayLink && darkParam()) todayLink.href = 'index.html?dark=1';
+    });
+
     function formatBytes(n) {
       if (n < 1024) return `${n} B`;
       return `${(n / 1024).toFixed(1)} KB`;
@@ -173,7 +184,7 @@
           <td class="size-cell">${formatBytes(size)}</td>
           <td>${formatFetchedAt(data)}</td>
           <td class="actions">
-            <a class="btn-view" href="index.html?date=${dateStr}">View</a>
+            <a class="btn-view" href="index.html?date=${dateStr}${darkParam()}">View</a>
             <button class="btn-delete" data-key="${key}">Delete</button>
           </td>
         `;

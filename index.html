@@ -11,23 +11,119 @@
       padding: 0;
     }
 
+    /* ── Light mode tokens (default) ── */
+    :root {
+      --bg:            #f7f8fa;
+      --fg:            #1a202c;
+      --heading:       #4a5568;
+      --muted:         #a0aec0;
+      --border:        #e2e8f0;
+      --label-bg:      #f0f2f5;
+      --label-fg:      #718096;
+      --row-day-bg:    #ffffff;
+      --row-day-fg:    #2d3748;
+      --row-cond-bg:   #ffffff;
+      --row-temp-bg:   #fffaf0;
+      --row-hum-bg:    #ebf8ff;
+      --row-hum-fg:    #2b6cb0;
+      --row-wind-bg:   #ffffff;
+      --row-wind-fg:   #276749;
+      --row-rain-bg:   #ffffff;
+      --row-rain-fg:   #2c5282;
+      --cond-label-fg: #718096;
+      --grid-line:     #a0aec0;
+      --grid-label:    #4a5568;
+      --marker:        #718096;
+      --line-stroke:   #1a202c;
+      --rain-fill:     #2d3748;
+      --toggle-bg:     #e2e8f0;
+      --toggle-fg:     #4a5568;
+      --error:         #e53e3e;
+      --loading-fg:    #718096;
+    }
+
+    /* ── Dark mode tokens ── */
+    :root.dark {
+      --bg:            #0f1117;
+      --fg:            #e2e8f0;
+      --heading:       #94a3b8;
+      --muted:         #4a5568;
+      --border:        #2d3748;
+      --label-bg:      #1a202c;
+      --label-fg:      #718096;
+      --row-day-bg:    #1a202c;
+      --row-day-fg:    #e2e8f0;
+      --row-cond-bg:   #1a202c;
+      --row-temp-bg:   #1c1a14;
+      --row-hum-bg:    #111827;
+      --row-hum-fg:    #63b3ed;
+      --row-wind-bg:   #1a202c;
+      --row-wind-fg:   #68d391;
+      --row-rain-bg:   #1a202c;
+      --row-rain-fg:   #90cdf4;
+      --cond-label-fg: #718096;
+      --grid-line:     #2d3748;
+      --grid-label:    #4a5568;
+      --marker:        #4a5568;
+      --line-stroke:   #e2e8f0;
+      --rain-fill:     #90cdf4;
+      --toggle-bg:     #2d3748;
+      --toggle-fg:     #94a3b8;
+      --error:         #fc8181;
+      --loading-fg:    #718096;
+    }
+
+    /* System dark mode auto-applies unless the user has toggled manually */
+    @media (prefers-color-scheme: dark) {
+      :root:not(.light) {
+        --bg:            #0f1117;
+        --fg:            #e2e8f0;
+        --heading:       #94a3b8;
+        --muted:         #4a5568;
+        --border:        #2d3748;
+        --label-bg:      #1a202c;
+        --label-fg:      #718096;
+        --row-day-bg:    #1a202c;
+        --row-day-fg:    #e2e8f0;
+        --row-cond-bg:   #1a202c;
+        --row-temp-bg:   #1c1a14;
+        --row-hum-bg:    #111827;
+        --row-hum-fg:    #63b3ed;
+        --row-wind-bg:   #1a202c;
+        --row-wind-fg:   #68d391;
+        --row-rain-bg:   #1a202c;
+        --row-rain-fg:   #90cdf4;
+        --cond-label-fg: #718096;
+        --grid-line:     #2d3748;
+        --grid-label:    #4a5568;
+        --marker:        #4a5568;
+        --line-stroke:   #e2e8f0;
+        --rain-fill:     #90cdf4;
+        --toggle-bg:     #2d3748;
+        --toggle-fg:     #94a3b8;
+        --error:         #fc8181;
+        --loading-fg:    #718096;
+      }
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f7f8fa;
-      color: #1a202c;
+      background: var(--bg);
+      color: var(--fg);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 24px 16px;
+      transition: background 0.2s, color 0.2s;
     }
 
     h1 {
       font-size: 1.6rem;
       font-weight: 500;
       letter-spacing: 0.06em;
-      color: #4a5568;
+      color: var(--heading);
       margin-bottom: 16px;
       text-transform: uppercase;
     }
@@ -39,7 +135,7 @@
     #history-link {
       display: block;
       font-size: 0.8rem;
-      color: #a0aec0;
+      color: var(--muted);
       text-decoration: none;
       margin-top: 16px;
       text-align: center;
@@ -47,15 +143,33 @@
 
     #history-link:hover { text-decoration: underline; }
 
+    /* Dark mode toggle button */
+    #theme-toggle {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      background: var(--toggle-bg);
+      color: var(--toggle-fg);
+      border: none;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      z-index: 10;
+    }
+
+    #theme-toggle:hover { opacity: 0.8; }
+
     #error {
-      color: #e53e3e;
+      color: var(--error);
       font-size: 1.9rem;
       margin-top: 12px;
       display: none;
     }
 
     #loading {
-      color: #718096;
+      color: var(--loading-fg);
       font-size: 1.9rem;
     }
 
@@ -66,10 +180,11 @@
     }
 
     .weather-table td {
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border);
       padding: 0;
       text-align: center;
       vertical-align: middle;
+      transition: background 0.2s, color 0.2s;
     }
 
     /* Label column (first cell of every row) */
@@ -78,8 +193,8 @@
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: #718096;
-      background: #f0f2f5;
+      color: var(--label-fg);
+      background: var(--label-bg);
       text-align: right;
       white-space: nowrap;
       width: 5rem;
@@ -87,16 +202,16 @@
 
     /* Row 1: Day of week */
     .row-day {
-      background: #fff;
+      background: var(--row-day-bg);
       font-size: 1.76rem;
       font-weight: 700;
       letter-spacing: 0.05em;
-      color: #2d3748;
+      color: var(--row-day-fg);
     }
 
     /* Row 2: Weather condition */
     .row-condition {
-      background: #fff;
+      background: var(--row-cond-bg);
     }
 
     .weather-icon {
@@ -107,12 +222,12 @@
 
     .condition-label {
       font-size: 1.5rem;
-      color: #718096;
+      color: var(--cond-label-fg);
     }
 
     /* Row 3: Temperature */
     .row-temp {
-      background: #fffaf0;
+      background: var(--row-temp-bg);
     }
 
     .temp-chart {
@@ -122,15 +237,15 @@
 
     /* Row 4: Humidity */
     .row-humidity {
-      background: #ebf8ff;
-      color: #2b6cb0;
+      background: var(--row-hum-bg);
+      color: var(--row-hum-fg);
       font-size: 1.52rem;
     }
 
     /* Row 5: Wind sparkline */
     .row-wind {
-      background: #fff;
-      color: #276749;
+      background: var(--row-wind-bg);
+      color: var(--row-wind-fg);
       font-size: 1.9rem;
     }
 
@@ -141,8 +256,8 @@
 
     /* Row 6: Rain bar chart */
     .row-rain {
-      background: #fff;
-      color: #2c5282;
+      background: var(--row-rain-bg);
+      color: var(--row-rain-fg);
       font-size: 1.9rem;
     }
 
@@ -153,6 +268,7 @@
   </style>
 </head>
 <body>
+  <button id="theme-toggle" aria-label="Toggle dark mode">🌙 Dark</button>
   <h1 id="page-title">Boston Weather</h1>
   <p id="page-subtitle"></p>
   <div id="loading" style="display:none">Fetching weather data…</div>
@@ -278,6 +394,11 @@
       });
     }
 
+    // Read a CSS custom property value from :root at call time (picks up dark mode)
+    function cssVar(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
     // Build an SVG sparkline for 24 hourly wind values.
     // Y scale: 0 to nearest 5mph ceiling above the actual max.
     // Gridlines at 5, 10, 15, 20 mph only up to that ceiling.
@@ -287,39 +408,42 @@
       const toX = i  => PADX + (i / (values.length - 1)) * (W - PADX * 2);
       const toY = mph => PADY + (1 - Math.min(mph, YMAX) / YMAX) * (H - PADY * 2);
 
+      const gridLine   = cssVar('--grid-line');
+      const gridLabel  = cssVar('--grid-label');
+      const marker     = cssVar('--marker');
+      const lineStroke = cssVar('--line-stroke');
+
       let svg = `<svg class="wind-sparkline" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
 
       // Horizontal gridlines at 10mph intervals up to YMAX (labeled solid) + 5mph midpoints (dotted)
       for (let mph = 5; mph <= YMAX; mph += 5) {
         const y = toY(mph).toFixed(1);
         if (mph % 10 === 0) {
-          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5"/>`;
-          svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="#4a5568">${mph}</text>`;
+          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="${gridLine}" stroke-width="0.5"/>`;
+          svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="${gridLabel}">${mph}</text>`;
         } else {
-          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5" stroke-dasharray="3,3"/>`;
+          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="${gridLine}" stroke-width="0.5" stroke-dasharray="3,3"/>`;
         }
       }
 
       // Vertical markers at 3am, 9am, 3pm, 9pm (no labels)
       for (const idx of [3, 9, 15, 21]) {
         const x = toX(idx).toFixed(1);
-        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="1" stroke-dasharray="1,3"/>`;
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="${marker}" stroke-width="1" stroke-dasharray="1,3"/>`;
       }
 
       // Solid noon marker at 12pm
       { const x = toX(12).toFixed(1);
-        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="0.5"/>`;
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="${marker}" stroke-width="0.5"/>`;
       }
 
       // Wind line
       const pts = values.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
-      svg += `<polyline points="${pts}" fill="none" stroke="#1a202c" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+      svg += `<polyline points="${pts}" fill="none" stroke="${lineStroke}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
 
       // Max wind label in the upper-right corner
       const maxWind = Math.round(Math.max(...values));
-      svg += `<text x="${W / 2}" y="${PADY + 10}" font-size="13.5" font-weight="700" fill="#1a202c" text-anchor="middle">${maxWind}<tspan font-size="6.75" font-weight="400">mph</tspan></text>`;
-
-      svg += `</svg>`;
+      svg += `<text x="${W / 2}" y="${PADY + 10}" font-size="13.5" font-weight="700" fill="${lineStroke}" text-anchor="middle">${maxWind}<tspan font-size="6.75" font-weight="400">mph</tspan></text>`;
 
       svg += `</svg>`;
       return svg;
@@ -337,6 +461,11 @@
       const toY = mm  => PADY + (1 - Math.min(mm, YMAX) / YMAX) * (H - PADY * 2);
       const barH = mm => (H - PADY * 2) - (toY(mm) - PADY);
 
+      const gridLine  = cssVar('--grid-line');
+      const gridLabel = cssVar('--grid-label');
+      const marker    = cssVar('--marker');
+      const rainFill  = cssVar('--rain-fill');
+
       let svg = `<svg class="rain-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
 
       // Bars
@@ -346,28 +475,27 @@
           const x = toX(i).toFixed(1);
           const y = toY(v).toFixed(1);
           const bh = barH(v).toFixed(1);
-          svg += `<rect x="${x}" y="${y}" width="${(barW - 0.5).toFixed(1)}" height="${bh}" fill="#2d3748" opacity="0.85"/>`;
+          svg += `<rect x="${x}" y="${y}" width="${(barW - 0.5).toFixed(1)}" height="${bh}" fill="${rainFill}" opacity="0.85"/>`;
         }
       }
 
       // Vertical markers at 3am, 9am, 3pm, 9pm
-      // Offset by half a bar so markers align with bar centers (matching wind/temp charts)
       const markerDefs = [{ idx: 3 }, { idx: 9 }, { idx: 15 }, { idx: 21 }];
       for (const { idx } of markerDefs) {
         const x = (toX(idx) + barW / 2).toFixed(1);
-        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="1" stroke-dasharray="1,3"/>`;
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="${marker}" stroke-width="1" stroke-dasharray="1,3"/>`;
       }
 
       // Solid noon marker at 12pm
       { const x = (toX(12) + barW / 2).toFixed(1);
-        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="0.5"/>`;
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="${marker}" stroke-width="0.5"/>`;
       }
 
       // Horizontal threshold lines: D=0.3mm, S=2.0mm
       for (const { mm, label } of [{ mm: 0.3, label: 'D' }, { mm: 1.5, label: 'S' }]) {
         const y = toY(mm).toFixed(1);
-        svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5"/>`;
-        svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="#4a5568">${label}</text>`;
+        svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="${gridLine}" stroke-width="0.5"/>`;
+        svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="${gridLabel}">${label}</text>`;
       }
 
       svg += `</svg>`;
@@ -382,6 +510,11 @@
       const toX = i   => PADX + (i / (values.length - 1)) * (W - PADX * 2);
       const toY = val => PADY + (1 - (val - YMIN) / range) * (H - PADY * 2);
 
+      const gridLine   = cssVar('--grid-line');
+      const gridLabel  = cssVar('--grid-label');
+      const marker     = cssVar('--marker');
+      const lineStroke = cssVar('--line-stroke');
+
       let svg = `<svg class="temp-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
 
       // Horizontal gridlines anchored to YMIN, stepping every 20°F (labeled solid)
@@ -389,10 +522,10 @@
       for (let t = YMIN; t <= YMAX; t += 10) {
         const y = toY(t).toFixed(1);
         if ((t - YMIN) % 20 === 0) {
-          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5"/>`;
-          svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="#4a5568">${t}</text>`;
+          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="${gridLine}" stroke-width="0.5"/>`;
+          svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="${gridLabel}">${t}</text>`;
         } else {
-          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5" stroke-dasharray="3,3"/>`;
+          svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="${gridLine}" stroke-width="0.5" stroke-dasharray="3,3"/>`;
         }
       }
 
@@ -400,26 +533,26 @@
       const markerDefs = [{ idx: 3, label: '3a' }, { idx: 9, label: '9a' }, { idx: 15, label: '3p' }, { idx: 21, label: '9p' }];
       for (const { idx, label } of markerDefs) {
         const x = toX(idx).toFixed(1);
-        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#a0aec0" stroke-width="1" stroke-dasharray="1,3"/>`;
-        svg += `<text x="${parseFloat(x) + 1}" y="${H - 1}" font-size="5" fill="#4a5568">${label}</text>`;
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="${gridLine}" stroke-width="1" stroke-dasharray="1,3"/>`;
+        svg += `<text x="${parseFloat(x) + 1}" y="${H - 1}" font-size="5" fill="${gridLabel}">${label}</text>`;
       }
 
       // Solid noon marker at 12pm
       { const x = toX(12).toFixed(1);
-        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="0.5"/>`;
+        svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="${marker}" stroke-width="0.5"/>`;
       }
 
       // Temperature line
       const pts = values.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
-      svg += `<polyline points="${pts}" fill="none" stroke="#1a202c" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+      svg += `<polyline points="${pts}" fill="none" stroke="${lineStroke}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
 
       // High label in the upper-right corner
       const highVal = Math.round(Math.max(...values));
-      svg += `<text x="${W - PADX - 1}" y="${PADY + 10}" font-size="13.5" font-weight="700" fill="#1a202c" text-anchor="end">${highVal}°</text>`;
+      svg += `<text x="${W - PADX - 1}" y="${PADY + 10}" font-size="13.5" font-weight="700" fill="${lineStroke}" text-anchor="end">${highVal}°</text>`;
 
       // Low label in the bottom-right corner, just above the bottom edge
       const lowVal = Math.round(Math.min(...values));
-      svg += `<text x="${W - PADX - 1}" y="${H - PADY - 2}" font-size="13.5" font-weight="700" fill="#1a202c" text-anchor="end">${lowVal}°</text>`;
+      svg += `<text x="${W - PADX - 1}" y="${H - PADY - 2}" font-size="13.5" font-weight="700" fill="${lineStroke}" text-anchor="end">${lowVal}°</text>`;
 
       svg += `</svg>`;
       return svg;
@@ -495,6 +628,7 @@
     }
 
     function buildTable(data) {
+      window._lastWeatherData = data;
       const { daily, hourly } = data;
       const NUM_DAYS = 4;
 
@@ -653,6 +787,64 @@
           throw err;
         }
       }
+    }
+
+    // ── Theme toggle ──
+    // Preference is stored in the URL as ?dark=1 so it's persistent across
+    // page loads and shareable. Falls back to the OS preference when absent.
+    function getThemeParams() {
+      return new URLSearchParams(location.search);
+    }
+
+    function isDarkMode() {
+      const params = getThemeParams();
+      if (params.has('dark')) return params.get('dark') === '1';
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
+    function applyTheme(isDark) {
+      const root = document.documentElement;
+      root.classList.toggle('dark', isDark);
+      root.classList.toggle('light', !isDark);
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+    }
+
+    function toggleTheme() {
+      const params = getThemeParams();
+      const nowDark = !isDarkMode();
+      if (nowDark) {
+        params.set('dark', '1');
+      } else {
+        params.delete('dark');
+      }
+      // Replace the current history entry so the back button still works naturally
+      const newUrl = `${location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+      history.replaceState(null, '', newUrl);
+      applyTheme(nowDark);
+      syncHistoryLink();
+      // Rebuild table so SVG charts pick up the new CSS variable values
+      const table = document.getElementById('forecast-table');
+      if (table.style.display !== 'none' && window._lastWeatherData) {
+        buildTable(window._lastWeatherData);
+      }
+    }
+
+    // Apply on initial load
+    applyTheme(isDarkMode());
+
+    // Keep the "History" link in sync with the current dark param
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+      // Sync history link on load
+      syncHistoryLink();
+    });
+
+    function syncHistoryLink() {
+      const link = document.getElementById('history-link');
+      if (!link) return;
+      const params = getThemeParams();
+      link.href = params.get('dark') === '1' ? 'history.html?dark=1' : 'history.html';
     }
 
     // Boot — respect ?date= query param (used by history.html "View" links)
