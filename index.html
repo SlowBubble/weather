@@ -67,7 +67,7 @@
 
     .weather-table td {
       border: 1px solid #e2e8f0;
-      padding: 11px 6px;
+      padding: 0;
       text-align: center;
       vertical-align: middle;
     }
@@ -300,8 +300,8 @@
         }
       }
 
-      // Vertical markers at 6am, 12pm, 6pm (no labels)
-      for (const idx of [6, 12, 18]) {
+      // Vertical markers at 3am, 9am, 3pm, 9pm (no labels)
+      for (const idx of [3, 9, 15, 21]) {
         const x = toX(idx).toFixed(1);
         svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="1" stroke-dasharray="1,4"/>`;
       }
@@ -316,7 +316,8 @@
 
     // Build an SVG bar chart for 24 hourly precipitation values (mm).
     // Starts from 12am. Shared YMAX across all days.
-    // Vertical markers at 6am (idx 6), 12pm (idx 12), 6pm (idx 18).
+    // Vertical markers at 3am, 9am, 3pm, 9pm. Labels D/S mark start of rain windows.
+    // D = drizzle (peak ≤ 0.3 mm/hr), S = shower (peak > 0.3 mm/hr).
     function rainBarChart(values, YMAX) {
       const W = 120, H = 30, PADX = 2, PADY = 4;
       const n = values.length; // 24
@@ -338,11 +339,18 @@
         }
       }
 
-      // Vertical markers at 6am, 12pm, 6pm
-      const markerDefs = [{ idx: 6 }, { idx: 12 }, { idx: 18 }];
+      // Vertical markers at 3am, 9am, 3pm, 9pm
+      const markerDefs = [{ idx: 3 }, { idx: 9 }, { idx: 15 }, { idx: 21 }];
       for (const { idx } of markerDefs) {
         const x = toX(idx).toFixed(1);
         svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#718096" stroke-width="1" stroke-dasharray="1,4"/>`;
+      }
+
+      // Horizontal threshold lines: D=0.3mm, S=2.0mm
+      for (const { mm, label } of [{ mm: 0.3, label: 'D' }, { mm: 2.0, label: 'S' }]) {
+        const y = toY(mm).toFixed(1);
+        svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5" stroke-dasharray="1,4"/>`;
+        svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="#4a5568">${label}</text>`;
       }
 
       svg += `</svg>`;
@@ -371,8 +379,8 @@
         }
       }
 
-      // Vertical markers at 6am, 12pm, 6pm
-      const markerDefs = [{ idx: 6, label: '6a' }, { idx: 12, label: '12p' }, { idx: 18, label: '6p' }];
+      // Vertical markers at 3am, 9am, 3pm, 9pm
+      const markerDefs = [{ idx: 3, label: '3a' }, { idx: 9, label: '9a' }, { idx: 15, label: '3p' }, { idx: 21, label: '9p' }];
       for (const { idx, label } of markerDefs) {
         const x = toX(idx).toFixed(1);
         svg += `<line x1="${x}" y1="${PADY}" x2="${x}" y2="${H - PADY}" stroke="#a0aec0" stroke-width="1" stroke-dasharray="1,4"/>`;
@@ -485,7 +493,7 @@
       const rainSlices = Array.from({ length: NUM_DAYS }, (_, d) =>
         hourly.precipitation.slice(d * 24, d * 24 + 24)
       );
-      const rainYMax = 4;
+      const rainYMax = 2.5;
 
       // Load yesterday's cached data for day-0 temp delta
       const yesterdayDate = new Date();
