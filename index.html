@@ -106,7 +106,7 @@
     }
 
     .condition-label {
-      font-size: 2.34rem;
+      font-size: 1.5rem;
       color: #718096;
     }
 
@@ -124,7 +124,7 @@
     .row-humidity {
       background: #ebf8ff;
       color: #2b6cb0;
-      font-size: 1.9rem;
+      font-size: 1.52rem;
     }
 
     /* Row 5: Wind sparkline */
@@ -317,7 +317,7 @@
 
       // Max wind label in the upper-right corner
       const maxWind = Math.round(Math.max(...values));
-      svg += `<text x="${W - PADX - 1}" y="${PADY + 10}" font-size="13.5" font-weight="700" fill="#1a202c" text-anchor="end">${maxWind}</text>`;
+      svg += `<text x="${W / 2}" y="${PADY + 10}" font-size="13.5" font-weight="700" fill="#1a202c" text-anchor="middle">${maxWind}<tspan font-size="6.75" font-weight="400">mph</tspan></text>`;
 
       svg += `</svg>`;
 
@@ -330,7 +330,7 @@
     // Vertical markers at 3am, 9am, 3pm, 9pm. Labels D/S mark start of rain windows.
     // D = drizzle (peak ≤ 0.3 mm/hr), S = shower (peak > 0.3 mm/hr).
     function rainBarChart(values, YMAX) {
-      const W = 120, H = 30, PADX = 2, PADY = 4;
+      const W = 120, H = 45, PADX = 2, PADY = 4;
       const n = values.length; // 24
       const barW = (W - PADX * 2) / n;
       const toX = i   => PADX + i * barW;
@@ -364,7 +364,7 @@
       }
 
       // Horizontal threshold lines: D=0.3mm, S=2.0mm
-      for (const { mm, label } of [{ mm: 0.3, label: 'D' }, { mm: 2.0, label: 'S' }]) {
+      for (const { mm, label } of [{ mm: 0.3, label: 'D' }, { mm: 1.5, label: 'S' }]) {
         const y = toY(mm).toFixed(1);
         svg += `<line x1="${PADX}" y1="${y}" x2="${W - PADX}" y2="${y}" stroke="#a0aec0" stroke-width="0.5"/>`;
         svg += `<text x="${PADX + 1}" y="${(parseFloat(y) - 1).toFixed(1)}" font-size="5" fill="#4a5568">${label}</text>`;
@@ -523,7 +523,7 @@
       const rainSlices = Array.from({ length: NUM_DAYS }, (_, d) =>
         hourly.precipitation.slice(d * 24, d * 24 + 24)
       );
-      const rainYMax = 2.5;
+      const rainYMax = 2.0;
 
       // Load yesterday's cached data for day-0 temp delta
       const yesterdayDate = new Date();
