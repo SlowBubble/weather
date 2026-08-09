@@ -36,23 +36,13 @@
       display: none;
     }
 
-    #date-select {
-      font-size: 0.85rem;
-      color: #718096;
-      border: 1px solid #e2e8f0;
-      background: #fff;
-      padding: 4px 8px;
-      border-radius: 4px;
-      margin-bottom: 4px;
-      cursor: pointer;
-    }
-
     #history-link {
       display: block;
       font-size: 0.8rem;
-      color: #718096;
+      color: #a0aec0;
       text-decoration: none;
-      margin-bottom: 16px;
+      margin-top: 16px;
+      text-align: center;
     }
 
     #history-link:hover { text-decoration: underline; }
@@ -178,11 +168,10 @@
 <body>
   <h1 id="page-title">Boston Weather</h1>
   <p id="page-subtitle"></p>
-  <select id="date-select" title="View cached date"></select>
-  <a href="history.html" id="history-link">History</a>
-  <div id="loading">Fetching weather data…</div>
+  <div id="loading" style="display:none">Fetching weather data…</div>
   <div id="error"></div>
   <table class="weather-table" id="forecast-table" style="display:none;"></table>
+  <a href="history.html" id="history-link">History</a>
 
   <script>
     const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -413,23 +402,6 @@
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     }
 
-    // Populate the date selector with cached dates
-    function refreshDateSelector(selectedDate) {
-      const sel = document.getElementById('date-select');
-      sel.innerHTML = '';
-      const dates = listCachedDates();
-      const today = todayStr();
-      // Always include today
-      const allDates = [...new Set([today, ...dates])].sort().reverse();
-      allDates.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d;
-        opt.textContent = d === today ? `${d} (today)` : d;
-        if (d === selectedDate) opt.selected = true;
-        sel.appendChild(opt);
-      });
-    }
-
     async function fetchWeather() {
       const params = new URLSearchParams({
         latitude: '42.3601',
@@ -561,6 +533,7 @@
       if (!isToday) {
         const cached = loadFromCache(dateStr);
         if (cached) {
+          document.getElementById('loading').style.display = 'none';
           buildTable(cached);
           return;
         }
@@ -569,9 +542,9 @@
 
       // Today: try live API, save to cache, fall back to cache on error
       try {
+        document.getElementById('loading').style.display = 'block';
         const data = await fetchWeather();
         saveToCache(today, data);
-        refreshDateSelector(today);
         buildTable(data);
       } catch (err) {
         const cached = loadFromCache(today);
@@ -587,20 +560,6 @@
     const urlDate = new URLSearchParams(location.search).get('date');
     const today = todayStr();
     const startDate = urlDate || today;
-    refreshDateSelector(startDate);
-
-    document.getElementById('date-select').addEventListener('change', function () {
-      document.getElementById('forecast-table').style.display = 'none';
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('error').style.display = 'none';
-      loadWeather(this.value)
-        .catch(err => {
-          document.getElementById('loading').style.display = 'none';
-          const el = document.getElementById('error');
-          el.textContent = `Could not load data: ${err.message}`;
-          el.style.display = 'block';
-        });
-    });
 
     loadWeather(startDate)
       .catch(err => {
