@@ -550,7 +550,7 @@
           const arrow = c.tempDiff > 0
             ? '<span style="color:#e53e3e">▲</span>'
             : '<span style="color:#63b3ed">▼</span>';
-          return `${c.dayLabel} ${arrow}${Math.abs(c.tempDiff)}°`;
+          return `${arrow}${Math.abs(c.tempDiff)}° — ${c.dayLabel}`;
         })
       ));
 
