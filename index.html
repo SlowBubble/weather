@@ -43,9 +43,19 @@
       background: #fff;
       padding: 4px 8px;
       border-radius: 4px;
-      margin-bottom: 16px;
+      margin-bottom: 4px;
       cursor: pointer;
     }
+
+    #history-link {
+      display: block;
+      font-size: 0.8rem;
+      color: #718096;
+      text-decoration: none;
+      margin-bottom: 16px;
+    }
+
+    #history-link:hover { text-decoration: underline; }
 
     #error {
       color: #e53e3e;
@@ -169,6 +179,7 @@
   <h1 id="page-title">Boston Weather</h1>
   <p id="page-subtitle"></p>
   <select id="date-select" title="View cached date"></select>
+  <a href="history.html" id="history-link">History</a>
   <div id="loading">Fetching weather data…</div>
   <div id="error"></div>
   <table class="weather-table" id="forecast-table" style="display:none;"></table>
@@ -370,6 +381,7 @@
 
     function saveToCache(dateStr, data) {
       try {
+        data._fetchedAt = new Date().toISOString();
         localStorage.setItem(cacheKey(dateStr), JSON.stringify(data));
       } catch (e) {
         console.warn('Could not save to localStorage:', e);
@@ -571,9 +583,11 @@
       }
     }
 
-    // Boot
+    // Boot — respect ?date= query param (used by history.html "View" links)
+    const urlDate = new URLSearchParams(location.search).get('date');
     const today = todayStr();
-    refreshDateSelector(today);
+    const startDate = urlDate || today;
+    refreshDateSelector(startDate);
 
     document.getElementById('date-select').addEventListener('change', function () {
       document.getElementById('forecast-table').style.display = 'none';
@@ -588,7 +602,7 @@
         });
     });
 
-    loadWeather(today)
+    loadWeather(startDate)
       .catch(err => {
         document.getElementById('loading').style.display = 'none';
         const el = document.getElementById('error');

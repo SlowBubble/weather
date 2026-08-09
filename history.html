@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boston Weather — History</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f7f8fa;
+      color: #1a202c;
+      min-height: 100vh;
+      padding: 32px 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: #4a5568;
+      text-transform: uppercase;
+    }
+
+    header a {
+      font-size: 0.85rem;
+      color: #718096;
+      text-decoration: none;
+    }
+
+    header a:hover { text-decoration: underline; }
+
+    #empty {
+      color: #a0aec0;
+      font-size: 1rem;
+      margin-top: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    thead tr {
+      background: #edf2f7;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 600;
+      color: #4a5568;
+      letter-spacing: 0.04em;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+
+    tr:hover td { background: #f0f4f8; }
+
+    .btn-view {
+      display: inline-block;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      color: #3182ce;
+      border: 1px solid #bee3f8;
+      border-radius: 4px;
+      text-decoration: none;
+      background: #ebf8ff;
+    }
+
+    .btn-view:hover { background: #bee3f8; }
+
+    .btn-delete {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      color: #e53e3e;
+      border: 1px solid #fed7d7;
+      border-radius: 4px;
+      background: #fff5f5;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+
+    .btn-delete:hover { background: #fed7d7; }
+
+    .size-cell { color: #718096; }
+
+    .actions { white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Weather History</h1>
+    <a href="index.html">← Today</a>
+  </header>
+
+  <div id="empty" style="display:none">No cached weather data found. Open <a href="index.html">index.html</a> to fetch today's data.</div>
+  <table id="history-table" style="display:none">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Days stored</th>
+        <th>Size</th>
+        <th>Fetched at</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="history-body"></tbody>
+  </table>
+
+  <script>
+    const CACHE_PREFIX = 'boston_weather_';
+
+    function formatBytes(n) {
+      if (n < 1024) return `${n} B`;
+      return `${(n / 1024).toFixed(1)} KB`;
+    }
+
+    function formatFetchedAt(data) {
+      // Open-Meteo responses include a "generationtime_ms" but no timestamp.
+      // We store a fetchedAt field when saving; fall back to "—".
+      if (data._fetchedAt) {
+        const d = new Date(data._fetchedAt);
+        return d.toLocaleString();
+      }
+      return '—';
+    }
+
+    function load() {
+      const entries = [];
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key.startsWith(CACHE_PREFIX)) continue;
+        const dateStr = key.replace(CACHE_PREFIX, '');
+        const raw = localStorage.getItem(key);
+        const size = new Blob([raw]).size;
+        let data;
+        try { data = JSON.parse(raw); } catch { data = {}; }
+        const numDays = data.daily?.time?.length ?? '?';
+        entries.push({ key, dateStr, size, numDays, data });
+      }
+
+      if (entries.length === 0) {
+        document.getElementById('empty').style.display = 'block';
+        return;
+      }
+
+      // Sort most recent first
+      entries.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
+
+      const tbody = document.getElementById('history-body');
+      entries.forEach(({ key, dateStr, size, numDays, data }) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${dateStr}</td>
+          <td>${numDays}</td>
+          <td class="size-cell">${formatBytes(size)}</td>
+          <td>${formatFetchedAt(data)}</td>
+          <td class="actions">
+            <a class="btn-view" href="index.html?date=${dateStr}">View</a>
+            <button class="btn-delete" data-key="${key}">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('history-table').style.display = 'table';
+
+      // Delete handlers
+      tbody.addEventListener('click', e => {
+        if (!e.target.classList.contains('btn-delete')) return;
+        const k = e.target.dataset.key;
+        if (confirm(`Delete cached data for ${k.replace(CACHE_PREFIX, '')}?`)) {
+          localStorage.removeItem(k);
+          e.target.closest('tr').remove();
+          if (document.getElementById('history-body').children.length === 0) {
+            document.getElementById('history-table').style.display = 'none';
+            document.getElementById('empty').style.display = 'block';
+          }
+        }
+      });
+    }
+
+    load();
+  </script>
+</body>
+</html>
