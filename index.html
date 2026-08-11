@@ -133,21 +133,11 @@
     }
 
     #history-link {
-      display: block;
-      font-size: 0.8rem;
-      color: var(--muted);
-      text-decoration: none;
-      margin-top: 16px;
-      text-align: center;
+      display: none;
     }
-
-    #history-link:hover { text-decoration: underline; }
 
     /* Dark mode toggle button */
     #theme-toggle {
-      position: fixed;
-      top: 14px;
-      right: 14px;
       background: var(--toggle-bg);
       color: var(--toggle-fg);
       border: none;
@@ -156,10 +146,25 @@
       font-size: 0.8rem;
       cursor: pointer;
       transition: background 0.2s, color 0.2s;
-      z-index: 10;
     }
 
     #theme-toggle:hover { opacity: 0.8; }
+
+    /* Bottom bar: history link + theme toggle */
+    #bottom-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    #history-link {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    #history-link:hover { text-decoration: underline; }
 
     #error {
       color: var(--error);
@@ -189,15 +194,7 @@
 
     /* Label column (first cell of every row) */
     .weather-table td.row-label-cell {
-      font-size: 1.3rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--label-fg);
-      background: var(--label-bg);
-      text-align: right;
-      white-space: nowrap;
-      width: 5rem;
+      display: none;
     }
 
     /* Row 1: Day of week */
@@ -268,13 +265,15 @@
   </style>
 </head>
 <body>
-  <button id="theme-toggle" aria-label="Toggle dark mode">🌙 Dark</button>
   <h1 id="page-title">Boston Weather</h1>
   <p id="page-subtitle"></p>
   <div id="loading" style="display:none">Fetching weather data…</div>
   <div id="error"></div>
   <table class="weather-table" id="forecast-table" style="display:none;"></table>
-  <a href="history.html" id="history-link">History</a>
+  <div id="bottom-bar">
+    <a href="history.html" id="history-link">History</a>
+    <button id="theme-toggle" aria-label="Toggle dark mode">🌙 Dark</button>
+  </div>
 
   <script>
     const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -619,7 +618,7 @@
         temperature_unit: 'fahrenheit',
         windspeed_unit: 'mph',
         timezone: 'America/New_York',
-        forecast_days: '4',
+        forecast_days: '7',
       });
 
       const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
@@ -630,7 +629,7 @@
     function buildTable(data) {
       window._lastWeatherData = data;
       const { daily, hourly } = data;
-      const NUM_DAYS = 4;
+      const NUM_DAYS = 6;
 
       const humidityAvgs = dailyHumidityAvg(hourly.relativehumidity_2m, NUM_DAYS);
 
@@ -726,7 +725,12 @@
         })
       ));
 
-      // Row 2 — Condition
+      // Row 2 — Temperature line chart
+      table.appendChild(makeRow('row-temp', 'Temp',
+        cols.map(c => tempLineChart(c.tempSlice, tempGlobalMin, tempGlobalMax, c.histLow, c.histHigh))
+      ));
+
+      // Row 3 — Condition
       table.appendChild(makeRow('row-condition', 'Cond',
         cols.map(c =>
           `<span class="weather-icon">${c.condition.icon}</span>
@@ -734,14 +738,9 @@
         )
       ));
 
-      // Row 3 — Rain bar chart
+      // Row 4 — Rain bar chart
       table.appendChild(makeRow('row-rain', 'Rain',
         cols.map(c => rainBarChart(c.rainSlice, rainYMax))
-      ));
-
-      // Row 4 — Temperature line chart
-      table.appendChild(makeRow('row-temp', 'Temp',
-        cols.map(c => tempLineChart(c.tempSlice, tempGlobalMin, tempGlobalMax, c.histLow, c.histHigh))
       ));
 
       // Row 5 — Wind sparkline
